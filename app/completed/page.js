@@ -7,7 +7,14 @@ export default function CompletedPage() {
   useEffect(() => {
   const fetchCompleted = async () => {
     try {
-      const res = await fetch("/api/completed");
+      const res = await fetch("/api/completed", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${localStorage.getItem("token")}`,
+  },
+  body: JSON.stringify({ date, exercises }),
+});
       if (!res.ok) throw new Error("Network response not ok");
 
       const data = await res.json();

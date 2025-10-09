@@ -19,6 +19,7 @@ export default function TodayPage() {
       console.log("just after apitoday")
       // Fetch today's completed workouts
       const completedRes = await fetch("/api/completed");
+      console.log("completedRes", completedRes);
       const completedData = await completedRes.json();
       console.log("just after complete")
       const todayCompletedEntry = completedData.find(
@@ -56,7 +57,7 @@ export default function TodayPage() {
 
     await fetch("/api/completed", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
       body: JSON.stringify({ date: todayDate, exercises: exercisesToSave }),
     });
 

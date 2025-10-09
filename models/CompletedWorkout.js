@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 
-const CompletedWorkoutSchema = new mongoose.Schema({
-  userId: String,
-  date: { type: Date, default: Date.now },
+const completedWorkoutSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  date: { type: String, required: true },
   exercises: [
     {
       name: String,
       sets: Number,
       reps: Number,
-    }
-  ]
+    },
+  ],
 });
 
-export default mongoose.models.CompletedWorkout || mongoose.model("CompletedWorkout", CompletedWorkoutSchema);
+export default mongoose.models.CompletedWorkout || mongoose.model("CompletedWorkout", completedWorkoutSchema);

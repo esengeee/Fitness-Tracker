@@ -1,11 +1,22 @@
 import { connectDB } from "@/lib/mongodb";
-import CompletedWorkout from "@/models/CompletedWorkout"; // Your Mongoose model
+import { verifyToken } from "@/lib/auth";
+import CompletedWorkout from "@/models/CompletedWorkout";
 
-export async function GET() {
+export async function GET(request) {
   try {
     await connectDB();
+    console.log("GET", request);
+    const user = verifyToken(request);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-    const completed = await CompletedWorkout.find().sort({ date: -1 });
+    // Fetch only this user's workouts
+    const completed = await CompletedWorkout.find({ userId: user.userId }).sort({ date: -1 });
+
     return new Response(JSON.stringify(completed), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -23,8 +34,15 @@ export async function POST(request) {
   try {
     await connectDB();
 
-    const { date, exercises } = await request.json();
+    const user = verifyToken(request);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
+    const { date, exercises } = await request.json();
     if (!date || !exercises || exercises.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid data" }), {
         status: 400,
@@ -32,7 +50,7 @@ export async function POST(request) {
       });
     }
 
-    let workout = await CompletedWorkout.findOne({ date });
+    let workout = await CompletedWorkout.findOne({ userId: user.userId, date });
 
     if (workout) {
       // Merge new exercises avoiding duplicates
@@ -48,7 +66,7 @@ export async function POST(request) {
       });
     } else {
       // Create a new entry
-      await CompletedWorkout.create({ date, exercises });
+      await CompletedWorkout.create({ userId: user.userId, date, exercises });
       return new Response(JSON.stringify({ message: "Marked today's workout" }), {
         status: 201,
         headers: { "Content-Type": "application/json" },
