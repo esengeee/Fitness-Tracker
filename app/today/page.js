@@ -10,29 +10,55 @@ export default function TodayPage() {
 
   useEffect(() => {
     const fetchTodayWorkout = async () => {
-      setLoading(true);
+  setLoading(true);
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("No token found, redirecting to login...");
+      router.replace("/login");
+      return;
+    }
 
-      // Fetch today's exercises
-      console.log("just after true")
-      const res = await fetch("/api/today");
-      const data = await res.json();
-      console.log("just after apitoday")
-      // Fetch today's completed workouts
-      const completedRes = await fetch("/api/completed");
-      console.log("completedRes", completedRes);
-      const completedData = await completedRes.json();
-      console.log("just after complete")
-      const todayCompletedEntry = completedData.find(
-        (entry) => new Date(entry.date).toISOString().split("T")[0] === todayDate
-      );
+    // Fetch today's exercises
+    console.log("just after true");
+    const res = await fetch("/api/today", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    console.log("just after apitoday");
 
-      if (todayCompletedEntry) {
-        setCompleted(todayCompletedEntry.exercises.map((ex) => ex.name));
-      }
+    // Fetch today's completed workouts
+    const completedRes = await fetch("/api/completed", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      setExercises(data);
+    if (!completedRes.ok) {
+      console.error("Failed to fetch completed workouts:", await completedRes.text());
       setLoading(false);
-    };
+      return;
+    }
+
+    const completedData = await completedRes.json();
+    console.log("just after complete", completedData);
+
+    const todayCompletedEntry = Array.isArray(completedData)
+      ? completedData.find(
+          (entry) => new Date(entry.date).toISOString().split("T")[0] === todayDate
+        )
+      : null;
+
+    if (todayCompletedEntry) {
+      setCompleted(todayCompletedEntry.exercises.map((ex) => ex.name));
+    }
+
+    setExercises(data);
+  } catch (error) {
+    console.error("Error fetching today's workout:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     fetchTodayWorkout();
   }, []);
