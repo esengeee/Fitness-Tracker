@@ -1,5 +1,8 @@
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 export async function POST(req) {
   try {
@@ -16,7 +19,15 @@ export async function POST(req) {
     const user = new User({ email, password });
     await user.save();
 
-    return new Response(JSON.stringify({ message: "User registered successfully" }), { status: 201 });
+    // ✅ Generate JWT
+    const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    return new Response(
+      JSON.stringify({ message: "User registered successfully", token }),
+      { status: 201 }
+    );
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });

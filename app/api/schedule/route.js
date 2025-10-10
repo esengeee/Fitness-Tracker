@@ -1,29 +1,49 @@
 import { connectDB } from "@/lib/mongodb";
 import WeeklySchedule from "@/models/WeeklySchedule";
+import { verifyToken } from "@/lib/auth";
 
-export async function GET() {
-  await connectDB();
-  const schedules = await WeeklySchedule.find({});
-  // Convert array of schedules to {day: exercises} object
-  const result = {};
-  schedules.forEach(s => {
-    result[s.day] = s.exercises;
-  });
-  return new Response(JSON.stringify(result), { status: 200 });
+export async function GET(request) {
+  try {
+    await connectDB();
+    const user = verifyToken(request);
+
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
+
+    const schedule = await WeeklySchedule.find({ userId: user.userId });
+    return new Response(JSON.stringify(schedule), { status: 200 });
+  } catch (err) {
+    console.error("GET /api/schedule error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
+  }
 }
 
-export async function POST(req) {
-  await connectDB();
-  const { day, exercise } = await req.json();
+export async function POST(request) {
+  try {
+    await connectDB();
+    const user = verifyToken(request);
+    const { day, exercises } = await request.json();
 
-  // Check if schedule exists for this day
-  let schedule = await WeeklySchedule.findOne({ day });
-  if (schedule) {
-    schedule.exercises.push(exercise);
-    await schedule.save();
-  } else {
-    schedule = await WeeklySchedule.create({ day, exercises: [exercise] });
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
+    if (!day || !exercises || exercises.length === 0) {
+      return new Response(JSON.stringify({ error: "Missing day or exercises" }), { status: 400 });
+    }
+
+    let existing = await WeeklySchedule.findOne({ userId: user.userId, day });
+
+    if (existing) {
+      existing.exercises.push(...exercises);
+      await existing.save();
+    } else {
+      await WeeklySchedule.create({ userId: user.userId, day, exercises });
+    }
+
+    return new Response(JSON.stringify({ message: "Schedule updated successfully" }), { status: 200 });
+  } catch (err) {
+    console.error("POST /api/schedule error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
   }
-
-  return new Response(JSON.stringify(schedule), { status: 200 });
 }

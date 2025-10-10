@@ -30,7 +30,6 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || data?.message || "Registration failed");
 
-      // server sends token (we'll replace this with secure cookies later)
       if (data.token) setToken(data.token);
 
       router.push("/today");
@@ -44,7 +43,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-purple-900/10 p-6 rounded-2xl shadow-lg">
-        <h1 className="text-2xl font-bold mb-4 text-purple-200">Create account</h1>
+        <h1 className="text-2xl font-bold mb-4 text-purple-200">Create Account</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -53,7 +52,7 @@ export default function RegisterPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-purple-700 text-black"
+              className="w-full px-3 py-2 rounded border border-purple-700 bg-purple-950/30 text-white placeholder-purple-300"
               placeholder="you@example.com"
               required
             />
@@ -65,7 +64,7 @@ export default function RegisterPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-purple-700 text-black"
+              className="w-full px-3 py-2 rounded border border-purple-700 bg-purple-950/30 text-white placeholder-purple-300"
               placeholder="At least 6 characters"
               required
             />
@@ -77,7 +76,7 @@ export default function RegisterPage() {
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-purple-700 text-black"
+              className="w-full px-3 py-2 rounded border border-purple-700 bg-purple-950/30 text-white placeholder-purple-300"
               placeholder="Repeat password"
               required
             />

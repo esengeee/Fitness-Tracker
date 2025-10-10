@@ -1,64 +1,72 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function TodayPage() {
   const [exercises, setExercises] = useState([]); // all exercises for today
-  const [completed, setCompleted] = useState([]); // all completed exercises for today
+  const [completed, setCompleted] = useState([]); // completed exercises
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  const todayDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const todayDate = new Date().toISOString().split("T")[0];
+
+  // ✅ Default template exercises
+  const defaultExercises = [
+    { name: "Push Ups", sets: 3, reps: 10 },
+    { name: "Squats", sets: 3, reps: 12 },
+    { name: "Plank", sets: 3, reps: 60 }, // seconds
+  ];
 
   useEffect(() => {
     const fetchTodayWorkout = async () => {
-  setLoading(true);
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      console.error("No token found, redirecting to login...");
-      router.replace("/login");
-      return;
-    }
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.error("No token found, redirecting to login...");
+          router.replace("/login");
+          return;
+        }
 
-    // Fetch today's exercises
-    console.log("just after true");
-    const res = await fetch("/api/today", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    console.log("just after apitoday");
+        // Fetch today's exercises
+        const res = await fetch("/api/today", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        let data = await res.json();
 
-    // Fetch today's completed workouts
-    const completedRes = await fetch("/api/completed", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+        // If empty, use default template
+        if (!data || data.length === 0) data = defaultExercises;
 
-    if (!completedRes.ok) {
-      console.error("Failed to fetch completed workouts:", await completedRes.text());
-      setLoading(false);
-      return;
-    }
+        // Fetch today's completed workouts
+        const completedRes = await fetch("/api/completed", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-    const completedData = await completedRes.json();
-    console.log("just after complete", completedData);
+        if (!completedRes.ok) {
+          console.error("Failed to fetch completed workouts:", await completedRes.text());
+          setLoading(false);
+          return;
+        }
 
-    const todayCompletedEntry = Array.isArray(completedData)
-      ? completedData.find(
-          (entry) => new Date(entry.date).toISOString().split("T")[0] === todayDate
-        )
-      : null;
+        const completedData = await completedRes.json();
 
-    if (todayCompletedEntry) {
-      setCompleted(todayCompletedEntry.exercises.map((ex) => ex.name));
-    }
+        const todayCompletedEntry = Array.isArray(completedData)
+          ? completedData.find(
+              (entry) => new Date(entry.date).toISOString().split("T")[0] === todayDate
+            )
+          : null;
 
-    setExercises(data);
-  } catch (error) {
-    console.error("Error fetching today's workout:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+        if (todayCompletedEntry) {
+          setCompleted(todayCompletedEntry.exercises.map((ex) => ex.name));
+        }
 
+        setExercises(data);
+      } catch (error) {
+        console.error("Error fetching today's workout:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     fetchTodayWorkout();
   }, []);
@@ -78,12 +86,14 @@ export default function TodayPage() {
       return;
     }
 
-    // Get exercises details for completed names
     const exercisesToSave = exercises.filter((ex) => completed.includes(ex.name));
 
     await fetch("/api/completed", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
       body: JSON.stringify({ date: todayDate, exercises: exercisesToSave }),
     });
 
@@ -96,28 +106,24 @@ export default function TodayPage() {
     <div className="p-6 min-h-screen bg-black text-white">
       <h1 className="text-3xl font-bold mb-6 text-purple-200">Today’s Workout</h1>
 
-      {exercises.length === 0 ? (
-        <p className="text-gray-300">No exercises planned today</p>
-      ) : (
-        <ul className="space-y-3">
-          {exercises.map((ex, i) => (
-            <li
-              key={i}
-              className="p-4 bg-purple-200 rounded-lg shadow flex items-center justify-between"
-            >
-              <div className="text-purple-900 font-medium">
-                {ex.name} — {ex.sets} sets × {ex.reps} reps
-              </div>
-              <input
-                type="checkbox"
-                checked={completed.includes(ex.name)}
-                onChange={() => toggleExercise(i)}
-                className="w-5 h-5 accent-purple-700"
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="space-y-3">
+        {exercises.map((ex, i) => (
+          <li
+            key={i}
+            className="p-4 bg-purple-200 rounded-lg shadow flex items-center justify-between"
+          >
+            <div className="text-purple-900 font-medium">
+              {ex.name} — {ex.sets} sets × {ex.reps} reps
+            </div>
+            <input
+              type="checkbox"
+              checked={completed.includes(ex.name)}
+              onChange={() => toggleExercise(i)}
+              className="w-5 h-5 accent-purple-700"
+            />
+          </li>
+        ))}
+      </ul>
 
       {exercises.length > 0 && (
         <button

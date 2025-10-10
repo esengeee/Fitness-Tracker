@@ -5,28 +5,33 @@ export default function CompletedPage() {
   const [completed, setCompleted] = useState([]);
 
   useEffect(() => {
-  const fetchCompleted = async () => {
-    try {
-      const res = await fetch("/api/completed", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${localStorage.getItem("token")}`,
-  },
-  body: JSON.stringify({ date, exercises }),
-});
-      if (!res.ok) throw new Error("Network response not ok");
+    const fetchCompleted = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.error("No token found — redirect to login maybe?");
+          return;
+        }
 
-      const data = await res.json();
-      setCompleted(data);
-    } catch (err) {
-      console.error("Failed to fetch completed workouts:", err);
-      setCompleted([]); // fallback to empty array
-    }
-  };
+        const res = await fetch("/api/completed", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
 
-  fetchCompleted();
-}, []);
+        if (!res.ok) throw new Error("Failed to fetch completed workouts");
+
+        const data = await res.json();
+        setCompleted(data);
+      } catch (err) {
+        console.error("Failed to fetch completed workouts:", err);
+        setCompleted([]); // fallback to empty array
+      }
+    };
+
+    fetchCompleted();
+  }, []);
 
   return (
     <div className="p-6 min-h-screen bg-black text-white">

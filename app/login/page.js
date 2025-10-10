@@ -49,7 +49,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-purple-700 text-black"
+              className="w-full px-3 py-2 rounded border border-purple-700 bg-purple-950/30 text-white placeholder-purple-300"
               placeholder="you@example.com"
               required
             />
@@ -61,7 +61,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-purple-700 text-black"
+              className="w-full px-3 py-2 rounded border border-purple-700 bg-purple-950/30 text-white placeholder-purple-300"
               placeholder="Your password"
               required
             />

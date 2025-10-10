@@ -1,16 +1,40 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
 export default function WeeklyPage() {
   const [schedule, setSchedule] = useState({});
-  const [inputs, setInputs] = useState({}); // store input values for each day
+  const [inputs, setInputs] = useState({});
+  const router = useRouter();
+
+  const fetchSchedule = async () => {
+    try {
+      const res = await fetch("/api/schedule", {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch schedule");
+      const data = await res.json();
+
+      // Transform into object grouped by day for easy rendering
+      const grouped = {};
+      data.forEach((item) => {
+        grouped[item.day] = item.exercises;
+      });
+
+      setSchedule(grouped);
+    } catch (err) {
+      console.error(err);
+      setSchedule({});
+    }
+  };
 
   useEffect(() => {
-    fetch("/api/schedule")
-      .then(res => res.json())
-      .then(data => setSchedule(data));
+    fetchSchedule();
   }, []);
 
   const handleInputChange = (day, field, value) => {
@@ -21,47 +45,60 @@ export default function WeeklyPage() {
   };
 
   const addExercise = async (day) => {
-    let exercise = inputs[day];
-
+    const exercise = inputs[day];
     if (!exercise || !exercise.name) {
       alert("Please enter an exercise name!");
       return;
     }
 
-    // Set defaults if empty
     const sets = exercise.sets ? parseInt(exercise.sets) : 3;
     const reps = exercise.reps ? parseInt(exercise.reps) : 10;
+    const exerciseToSave = { name: exercise.name, sets, reps };
 
-    const exerciseToSave = {
-      name: exercise.name,
-      sets,
-      reps,
-    };
+    try {
+      console.log("Reached before /api/schedule");
 
-    await fetch("/api/schedule", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ day, exercise: exerciseToSave }),
-    });
+      const res = await fetch("/api/schedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ day, exercises: [exerciseToSave] }),
+      });
 
-    // Refresh schedule
-    const updated = await fetch("/api/schedule").then(r => r.json());
-    setSchedule(updated);
+      if (!res.ok) throw new Error("Failed to add exercise");
 
-    // Clear input fields for this day
-    setInputs({ ...inputs, [day]: { name: "", sets: "", reps: "" } });
+      console.log("Post fetch successful");
+
+      await fetchSchedule();
+      setInputs({ ...inputs, [day]: { name: "", sets: "", reps: "" } });
+    } catch (err) {
+      console.error("Error adding exercise:", err);
+    }
+  };
+
+  // 🔹 Logout handler
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/login");
   };
 
   return (
-    <div className="p-6 min-h-screen bg-black text-white">
-      <h1 className="text-3xl font-bold mb-6 text-purple-200">Weekly Schedule</h1>
+    <div className="p-6 min-h-screen bg-black text-white relative">
+      {/* 🔹 Logout Button (top-right corner) */}
+      <button
+        onClick={handleLogout}
+        className="absolute top-4 right-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow transition"
+      >
+        Logout
+      </button>
+
+      <h1 className="text-3xl font-bold mb-6 text-purple-200 text-center">Weekly Schedule</h1>
 
       <div className="space-y-4">
         {days.map((day) => (
-          <div
-            key={day}
-            className="p-4 bg-purple-200 rounded-lg shadow flex flex-col"
-          >
+          <div key={day} className="p-4 bg-purple-200 rounded-lg shadow flex flex-col">
             <h2 className="font-semibold text-purple-900 text-lg mb-2">{day}</h2>
 
             <ul className="mb-2">
@@ -75,7 +112,6 @@ export default function WeeklyPage() {
               ))}
             </ul>
 
-            {/* Input fields to add new exercise */}
             <div className="flex flex-wrap gap-2 mb-2">
               <input
                 type="text"
